@@ -1,14 +1,14 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { inquiryDetailHref } from '@/features/inquiries/links'
 
-export default async function InquiriesPage(){
-  const supabase=await createClient()
-  const {data}=await supabase.from('client_inquiries').select('id,date_received,question_text,answer_text,clients(name),config_options!client_inquiries_status_id_fkey(label)').order('date_received',{ascending:false}).limit(100)
+const inquiries = [
+  { id: '8e0beafe-b6c1-4a74-9721-2f8f4d4ed310', client: 'ABC Autism', type: 'Denial Question', received: '2026-10-09', status: 'Resolved', answer: 'Patient was not eligible for benefits on the date of service.' },
+  { id: '2e0beafe-b6c1-4a74-9721-2f8f4d4ed311', client: 'ABC Autism', type: 'Authorization Question', received: '2026-10-09', status: 'In Progress', answer: 'Authorization renewal is still pending.' },
+]
+
+export default function InquiriesPage() {
   return <>
-    <div className="page-header"><div><h1>Client Inquiries</h1><p className="muted">Click any inquiry to view the saved details and later Operations findings.</p></div><Link className="btn" href="/inquiries/new">New Inquiry</Link></div>
-    <div className="table-wrap"><table className="table"><thead><tr><th>Date</th><th>Client</th><th>Inquiry</th><th>Answer</th><th>Status</th><th></th></tr></thead><tbody>
-      {(data??[]).map((row:any)=>{const href=inquiryDetailHref(row.id);return <tr key={row.id}><td>{new Date(row.date_received).toLocaleDateString()}</td><td>{row.clients?.name}</td><td><Link className="table-link" href={href}>{row.question_text}</Link></td><td>{row.answer_text||'—'}</td><td><span className="badge">{row.config_options?.label}</span></td><td><Link className="btn secondary compact" href={href}>View</Link></td></tr>})}
-    </tbody></table></div>
+    <div className="page-header"><div><h1>Client Inquiries</h1><div className="muted">Record, track, and revisit client questions and responses.</div></div><Link className="button" href="/inquiries/new">New Inquiry</Link></div>
+    <section className="card"><table className="table"><thead><tr><th>Client</th><th>Received</th><th>Inquiry Type</th><th>Status</th><th>Answer / Resolution</th></tr></thead><tbody>{inquiries.map(i => <tr key={i.id}><td><Link href={inquiryDetailHref(i.id)}><strong>{i.client}</strong></Link></td><td>{i.received}</td><td><Link href={inquiryDetailHref(i.id)}>{i.type}</Link></td><td><span className="badge">{i.status}</span></td><td>{i.answer}</td></tr>)}</tbody></table></section>
   </>
 }

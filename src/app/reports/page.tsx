@@ -1,22 +1,35 @@
-import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { normalizeClientFilter } from '@/features/reports/filter'
-import { generateMonthlyReport } from '@/features/reports/actions'
 
-export default async function ReportsPage({searchParams}:{searchParams:Promise<{client?:string|string[];month?:string|string[]}>}){
-  const params=await searchParams; const rawClient=Array.isArray(params.client)?params.client[0]:params.client; const selectedClientId=normalizeClientFilter(rawClient)
-  const rawMonth=Array.isArray(params.month)?params.month[0]:params.month; const month=/^\d{4}-\d{2}$/.test(rawMonth??'')?rawMonth!:new Date().toISOString().slice(0,7)
-  const start=`${month}-01`; const next=new Date(`${start}T00:00:00Z`); next.setUTCMonth(next.getUTCMonth()+1); const end=next.toISOString().slice(0,10)
-  const supabase=await createClient(); const {data:clients=[]}=await supabase.from('clients').select('id,name').eq('active',true).order('name')
-  let daily=supabase.from('daily_reports').select('id,client_id,report_date,status,narrative,clients(name)').gte('report_date',start).lt('report_date',end).order('report_date',{ascending:false}).limit(100)
-  let monthly=supabase.from('monthly_reports').select('id,client_id,month_start,status,narrative,clients(name)').eq('month_start',start).order('generated_at',{ascending:false})
-  if(selectedClientId){daily=daily.eq('client_id',selectedClientId);monthly=monthly.eq('client_id',selectedClientId)}
-  const [{data:dailyReports=[]},{data:monthlyReports=[]}]=await Promise.all([daily,monthly]); const selectedClient=(clients??[]).find((x:any)=>x.id===selectedClientId)
+const clients = [
+  { id: '11111111-1111-4111-8111-111111111111', name: 'ABC Autism' },
+  { id: '22222222-2222-4222-8222-222222222222', name: 'Bright Steps ABA' },
+]
+
+const dailyReports = [
+  { clientId: clients[0].id, client: 'ABC Autism', date: '2026-10-09', status: 'Finalized', summary: '7 documented inquiries; 6 resolved and 1 remains open or awaiting follow-up.' },
+  { clientId: clients[1].id, client: 'Bright Steps ABA', date: '2026-10-09', status: 'Draft', summary: '2 documented inquiries; both remain in follow-up.' },
+]
+
+export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ clientId?: string; month?: string }> }) {
+  const params = await searchParams
+  const selected = normalizeClientFilter(params.clientId)
+  const visible = selected ? dailyReports.filter(r => r.clientId === selected) : dailyReports
   return <>
-    <div className="page-header"><div><h1>Reports</h1><p className="muted">Client inquiry tracking and client-safe communications.</p></div></div>
-    <form className="card filter-bar" method="get"><label className="field">Client<select name="client" defaultValue={selectedClientId??''}><option value="">All clients</option>{(clients??[]).map((x:any)=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><label className="field">Month<input name="month" type="month" defaultValue={month}/></label><button className="btn" type="submit">Apply Filter</button>{(selectedClientId||params.month)&&<Link className="btn secondary" href="/reports">Clear</Link>}</form>
-    <section className="card"><div className="page-header"><div><h2>Monthly Client Report{selectedClient?` — ${selectedClient.name}`:''}</h2><p className="muted">Generate only for the selected client and month.</p></div></div>{selectedClientId?<form action={generateMonthlyReport} className="actions"><input type="hidden" name="client_id" value={selectedClientId}/><input type="hidden" name="month" value={month}/><button className="btn" type="submit">Generate Monthly Report</button></form>:<p className="muted">Select one client above to generate a monthly report.</p>}
-      {(monthlyReports??[]).map((r:any)=><div className="section" key={r.id}><strong>{r.clients?.name} — {r.month_start}</strong> <span className="badge">{r.status}</span><p>{r.narrative||'Draft report generated.'}</p></div>)}</section>
-    <section className="section"><h2>Daily Reports{selectedClient?` — ${selectedClient.name}`:''}</h2><div className="table-wrap"><table className="table"><thead><tr><th>Date</th><th>Client</th><th>Status</th><th>Summary</th></tr></thead><tbody>{(dailyReports??[]).length?(dailyReports??[]).map((r:any)=><tr key={r.id}><td>{r.report_date}</td><td>{r.clients?.name}</td><td><span className="badge">{r.status}</span></td><td>{r.narrative||'—'}</td></tr>):<tr><td colSpan={4} className="muted">No reports found for this client/month filter.</td></tr>}</tbody></table></div></section>
+    <div className="page-header"><div><h1>Reports</h1><div className="muted">Client inquiry tracking and communications</div></div></div>
+    <section className="card">
+      <h2>Monthly Client Report</h2>
+      <form className="toolbar" method="get">
+        <div className="field"><label htmlFor="clientId">Client</label><select id="clientId" name="clientId" defaultValue={selected ?? ''}><option value="">All clients</option>{clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+        <div className="field"><label htmlFor="month">Month</label><input id="month" name="month" type="month" defaultValue={params.month ?? '2026-10'} /></div>
+        <button className="button" type="submit">Filter Reports</button>
+      </form>
+    </section>
+    <section className="card"><h2>Daily Reports</h2>{visible.length === 0 ? <p>No reports match this client.</p> : visible.map(report => <article key={report.clientId + report.date} className="report-section">
+      <div className="page-header"><div><h3>{report.client} — {report.date}</h3><span className="badge">{report.status}</span></div><div className="actions"><button className="button secondary">Reopen Draft</button><button className="button">Download PDF</button></div></div>
+      <p>{report.summary}</p>
+      <div className="report-section"><h3>Resolved Inquiries</h3><ul><li>Denial Question — patient eligibility explanation provided.</li><li>Claim Status — payment status communicated.</li></ul></div>
+      <div className="report-section"><h3>Open Follow-Up</h3><ul><li>Authorization Question — awaiting renewal decision.</li></ul></div>
+      <div className="report-section"><h3>Operations Findings</h3><ul><li>Eligibility Not Verified → Client Education</li><li>EDI / ERA Enrollment Missing → System / Configuration Change</li></ul></div>
+    </article>)}</section>
   </>
 }

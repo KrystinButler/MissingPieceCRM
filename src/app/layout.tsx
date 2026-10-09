@@ -1,11 +1,9 @@
 import './globals.css'
 import { AppShell } from '@/components/app-shell'
-import { createClient } from '@/lib/supabase/server'
+import type { Metadata } from 'next'
 
-export const metadata = { title: 'Missing Piece CRM', description: 'ABA Client Communications' }
+export const metadata: Metadata = { title: 'Client Communications - Missing Piece ABA Billing' }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return <html lang="en"><body>{user ? <AppShell>{children}</AppShell> : children}</body></html>
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return <html lang="en"><body><AppShell>{children}</AppShell></body></html>
 }

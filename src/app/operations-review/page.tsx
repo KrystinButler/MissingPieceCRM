@@ -1,7 +1,3 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 
-export default async function OperationsReviewPage(){
-  const supabase=await createClient(); const {data}=await supabase.from('operations_reviews').select('inquiry_id,created_at,client_inquiries(question_text,date_received,clients(name))').eq('review_status','pending').order('created_at')
-  return <><div className="page-header"><div><h1>Operations Review</h1><p className="muted">Resolved inquiries awaiting root-cause classification.</p></div></div><div className="table-wrap"><table className="table"><thead><tr><th>Client</th><th>Inquiry</th><th>Received</th><th></th></tr></thead><tbody>{(data??[]).map((row:any)=><tr key={row.inquiry_id}><td>{row.client_inquiries?.clients?.name}</td><td>{row.client_inquiries?.question_text}</td><td>{row.client_inquiries?.date_received?new Date(row.client_inquiries.date_received).toLocaleDateString():'—'}</td><td><Link className="btn" href={`/operations-review/${row.inquiry_id}`}>Review</Link></td></tr>)}</tbody></table></div></>
-}
+export default function OperationsReviewPage(){return <><div className="page-header"><div><h1>Operations Review</h1><div className="muted">Resolved inquiries waiting for root-cause classification.</div></div></div><section className="card"><table className="table"><thead><tr><th>Client</th><th>Inquiry</th><th>Resolved</th><th>Review Status</th><th></th></tr></thead><tbody><tr><td>ABC Autism</td><td>Denial Question</td><td>2026-10-09</td><td><span className="badge">Pending</span></td><td><Link href="/operations-review/8e0beafe-b6c1-4a74-9721-2f8f4d4ed310">Review</Link></td></tr></tbody></table></section></>}

@@ -1,9 +1,10 @@
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-export function normalizeClientFilter(value?: string | string[]): string | null {
-  const raw = Array.isArray(value) ? value[0] : value
-  const normalized = raw?.trim() ?? ''
+export function normalizeClientFilter(value?: string | null): string | null {
+  const normalized = value?.trim() ?? ''
   if (!normalized) return null
-  if (!UUID_RE.test(normalized)) throw new Error('Invalid client filter. Expected a client UUID.')
+  if (!UUID_PATTERN.test(normalized)) {
+    throw new Error('Invalid client filter: expected client UUID')
+  }
   return normalized
 }

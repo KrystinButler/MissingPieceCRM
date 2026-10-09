@@ -1,26 +1,23 @@
 import Link from 'next/link'
-import { signOut } from '@/features/inquiries/actions'
+import type { ReactNode } from 'react'
 
-const links = [
-  ['/', 'Home'],
-  ['/inquiries', 'Client Inquiries'],
-  ['/operations-review', 'Operations'],
-  ['/reports', 'Reports'],
-  ['/trends', 'Client Education'],
-  ['/management-escalations', 'Management'],
-  ['/settings', 'Settings'],
-]
+const nav = [
+  ['Home', '/'],
+  ['Client Inquiries', '/inquiries'],
+  ['Operations', '/operations-review'],
+  ['Reports', '/reports'],
+  ['Client Education', '/trends'],
+  ['Management', '/management-escalations'],
+  ['Settings', '/settings'],
+] as const
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: { children: ReactNode }) {
   return <>
-    <a className="skip" href="#main">Skip to content</a>
-    <header className="topbar no-print">
-      <div className="brand">Missing Piece ABA Billing</div>
-      <nav className="topnav" aria-label="Primary navigation">
-        {links.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
-      </nav>
-      <form action={signOut}><button className="btn secondary compact" type="submit">Sign out</button></form>
+    <a className="skip-link" href="#main-content">Skip to content</a>
+    <header className="topbar">
+      <div className="brand">Client Communications · Missing Piece ABA Billing</div>
+      <nav aria-label="Primary navigation">{nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}</nav>
     </header>
-    <main className="main" id="main">{children}</main>
+    <main id="main-content" className="page">{children}</main>
   </>
 }
