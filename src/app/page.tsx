@@ -1,0 +1,3 @@
+import Link from 'next/link'
+
+export default function HomePage(){return <><div className="page-header"><div><h1>Client Communications</h1><div className="muted">Missing Piece ABA Billing</div></div></div><div className="card"><h2>Workflow</h2><p>Frontline staff document and answer client inquiries. Resolved inquiries move to Operations Review for root-cause classification, corrective action, trend analysis, education/process work, or management escalation.</p><div className="actions"><Link className="button" href="/inquiries/new">New Inquiry</Link><Link className="button secondary" href="/operations-review">Operations Review</Link><Link className="button secondary" href="/reports">Reports</Link></div></div></>}

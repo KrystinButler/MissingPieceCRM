@@ -1,0 +1,20 @@
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { completeOperationsReview } from '@/features/operations-review/actions'
+import { defaultCorrectiveAction } from '@/features/operations-review/mapping'
+import { createClient } from '@/lib/supabase/server'
+
+export const dynamic = 'force-dynamic'
+const rootCauses = ['Eligibility Not Verified','Patient Ineligible','Authorization Missing / Expired','Authorization Pending','Credentialing Pending','Provider Not Credentialed','Provider Affiliation Missing','EDI / ERA Enrollment Missing','Payment Issued by Paper Check','Claim Processing Delay','Claim Submission Error','Payer Processing Error','Documentation Missing','Client Workflow Error','Internal Follow-Up Failure','No Root Cause Identified Yet','Other']
+const correctiveActions = ['Client Education','Client Process Change','Internal Process Change','System / Configuration Change','Information Access Needed','Management Escalation','Payer Escalation','No Corrective Action','Further Investigation Needed']
+type Row = { id:string; inquiry_type:string; client_question:string; answer_provided:string|null; clients:{name:string}|null; operations_reviews:{review_status:string;root_cause:string|null;root_cause_notes:string|null;corrective_action:string|null}[]|null }
+export default async function OperationsReviewDetail({ params }:{ params:Promise<{inquiryId:string}> }) {
+  const { inquiryId } = await params
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('client_inquiries').select('id,inquiry_type,client_question,answer_provided,clients(name),operations_reviews(review_status,root_cause,root_cause_notes,corrective_action)').eq('id', inquiryId).maybeSingle()
+  if (error) throw error
+  if (!data) notFound()
+  const inquiry = data as unknown as Row
+  const review = inquiry.operations_reviews?.[0]
+  return <><div className="page-header"><div><h1>Operations Review</h1><div className="muted">Classify the confirmed root cause after the client inquiry has been resolved.</div></div><Link className="button secondary" href={`/inquiries/${inquiryId}`}>View Inquiry</Link></div><section className="card"><dl className="detail-grid"><dt>Client</dt><dd>{inquiry.clients?.name ?? '—'}</dd><dt>Inquiry Type</dt><dd>{inquiry.inquiry_type}</dd><dt>Client Inquiry</dt><dd>{inquiry.client_question}</dd><dt>Answer Provided</dt><dd>{inquiry.answer_provided ?? '—'}</dd></dl></section>{review?.review_status === 'Completed' ? <section className="card"><h2>Review Completed</h2><dl className="detail-grid"><dt>Root Cause</dt><dd>{review.root_cause}</dd><dt>Corrective Action</dt><dd>{review.corrective_action}</dd><dt>Notes</dt><dd>{review.root_cause_notes ?? '—'}</dd></dl></section> : <form className="card" action={completeOperationsReview}><input type="hidden" name="inquiry_id" value={inquiryId}/><h2>Classify Root Cause</h2><div className="field"><label htmlFor="root_cause">Root Cause</label><select id="root_cause" name="root_cause" required defaultValue=""><option value="">Select confirmed root cause</option>{rootCauses.map(v => <option key={v}>{v}</option>)}</select></div><div className="field" style={{marginTop:16,minWidth:'100%'}}><label htmlFor="root_cause_notes">Operations Notes</label><textarea id="root_cause_notes" name="root_cause_notes" rows={4}/></div><div className="field" style={{marginTop:16}}><label htmlFor="corrective_action">Corrective Action</label><select id="corrective_action" name="corrective_action" defaultValue=""><option value="">Use suggested action from root cause</option>{correctiveActions.map(v => <option key={v}>{v}</option>)}</select></div><div className="muted" style={{marginTop:10}}>Example: Internal Follow-Up Failure → {defaultCorrectiveAction('Internal Follow-Up Failure')}</div><div className="field" style={{marginTop:16,minWidth:'100%'}}><label htmlFor="override_reason">Override Reason (only if changing the suggested action)</label><textarea id="override_reason" name="override_reason" rows={2}/></div><div style={{marginTop:20}}><button className="button" type="submit">Complete Review</button></div></form>}</>
+}
