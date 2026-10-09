@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { classifyTrend, rootCausePercentage } from '@/features/trends/calculate'
+import { classifyTrend, rootCausePercentage } from '../src/features/trends/calculate'
 
 describe('30-day trend thresholds', () => {
   it('uses exact 5/10/15 percent boundaries', () => {
