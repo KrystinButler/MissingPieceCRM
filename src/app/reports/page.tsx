@@ -1,0 +1,15 @@
+import { normalizeClientFilter } from '@/features/reports/filter'
+import { createClient } from '@/lib/supabase/server'
+
+export const dynamic = 'force-dynamic'
+type Client = { id:string; name:string }
+type Report = { id:string; client_id:string; report_date:string; status:string; narrative:string|null; clients:{name:string}|null }
+function monthBounds(month?: string) { if (!month || !/^\d{4}-\d{2}$/.test(month)) return null; const [year, mon] = month.split('-').map(Number); const start = `${year}-${String(mon).padStart(2,'0')}-01`; const next = mon === 12 ? `${year + 1}-01-01` : `${year}-${String(mon + 1).padStart(2,'0')}-01`; return { start, next } }
+export default async function ReportsPage({ searchParams }:{ searchParams:Promise<{clientId?:string;month?:string}> }) {
+  const params = await searchParams; const selected = normalizeClientFilter(params.clientId); const bounds = monthBounds(params.month); const supabase = await createClient()
+  const { data: clientData, error: clientError } = await supabase.from('clients').select('id,name').eq('active', true).order('name'); if (clientError) throw clientError
+  let query = supabase.from('daily_reports').select('id,client_id,report_date,status,narrative,clients(name)').order('report_date', { ascending:false }); if (selected) query = query.eq('client_id', selected); if (bounds) query = query.gte('report_date', bounds.start).lt('report_date', bounds.next)
+  const { data: reportData, error: reportError } = await query; if (reportError) throw reportError
+  const clients = (clientData ?? []) as Client[]; const reports = (reportData ?? []) as unknown as Report[]
+  return <><div className="page-header"><div><h1>Reports</h1><div className="muted">Client inquiry tracking and communications</div></div></div><section className="card"><h2>Report Filters</h2><form className="toolbar" method="get"><div className="field"><label htmlFor="clientId">Client</label><select id="clientId" name="clientId" defaultValue={selected ?? ''}><option value="">All clients</option>{clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div className="field"><label htmlFor="month">Month</label><input id="month" name="month" type="month" defaultValue={params.month ?? ''}/></div><button className="button" type="submit">Filter Reports</button>{(selected || params.month) ? <a className="button secondary" href="/reports">Clear</a> : null}</form></section><section className="card"><h2>Daily Reports</h2>{reports.length === 0 ? <p>No reports match the selected filters.</p> : reports.map(report => <article key={report.id} className="report-section"><div className="page-header"><div><h3>{report.clients?.name ?? 'Client'} — {report.report_date}</h3><span className="badge">{report.status}</span></div><div className="actions"><button className="button secondary" type="button">Reopen Draft</button><button className="button" type="button">Download PDF</button></div></div><p>{report.narrative || 'Report narrative has not been generated yet.'}</p></article>)}</section></>
+}

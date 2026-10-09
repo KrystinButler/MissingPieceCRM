@@ -1,0 +1,3 @@
+import { describe, expect, it } from 'vitest'
+import { normalizeClientFilter } from '../src/features/reports/filter'
+describe('report client filter',()=>{it('returns the selected client UUID for database filtering',()=>{expect(normalizeClientFilter('  11111111-1111-4111-8111-111111111111  ')).toBe('11111111-1111-4111-8111-111111111111')});it('returns null when no client is selected',()=>{expect(normalizeClientFilter(undefined)).toBeNull();expect(normalizeClientFilter('')).toBeNull()});it('rejects non-UUID filter values',()=>{expect(()=>normalizeClientFilter('ABC Autism')).toThrow(/client filter/i)})})
